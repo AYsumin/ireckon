@@ -6,5 +6,5 @@
 from .api import Memory
 
 __all__ = ["Memory"]
-__version__ = "0.2.11"
+__version__ = "0.2.12"
 __name_ascii__ = "IReckon"      # 对外名（ASCII）；中文名"俺寻思"只作别名

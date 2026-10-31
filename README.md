@@ -8,11 +8,11 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## IReckon 0.2.11（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
+## IReckon 0.2.12（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
 > **命名说明：对外名是 `IReckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
-> **版本号 `0.2.11` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
+> **版本号 `0.2.12` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
 > `0.58e` 是内部代号（"断崖系数 0.58 的实验分支"），说实验分支，不说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
@@ -30,7 +30,7 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `IReckon-0.2.11.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | `IReckon-0.2.12.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
 > | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
@@ -586,7 +586,7 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `IReckon-0.2.11.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| `IReckon-0.2.12.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
 | 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
@@ -630,7 +630,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip IReckon-0.2.11.zip
+unzip IReckon-0.2.12.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 
