@@ -46,7 +46,7 @@ def _version() -> str:
         return "0.0.0"
 
 
-OUT = os.path.join(os.path.dirname(ROOT), f"IRckon-{_version()}.zip")
+OUT = os.path.join(os.path.dirname(ROOT), f"IReckon-{_version()}.zip")
 BLOCKLIST = os.path.join(ROOT, "tools", "blocklist.local")
 
 SKIP_DIRS = {"__pycache__", ".pytest_cache", ".git", ".idea", ".vscode", "node_modules", "backups", "snapshots"}

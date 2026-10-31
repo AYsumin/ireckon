@@ -3,9 +3,9 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "irckon"
-version = "0.2.6"
-description = "IRckon（俺寻思）：五层时间记忆 + BM25 检索的极简记忆套件，内部代号 0.58e"
+name = "ireckon"
+version = "0.2.7"
+description = "IReckon（俺寻思）：五层时间记忆 + BM25 检索的极简记忆套件，内部代号 0.58e"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
