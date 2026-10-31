@@ -64,6 +64,9 @@ def audit(strict: bool = True) -> int:
     if f'f"{NAME}-{{_version()}}.zip"' not in pkg:
         problems.append(f'package.py 的产物名不是 {NAME}-<version>.zip')
 
+    title_line = next((ln for ln in readme.splitlines() if ln.startswith('## ')), '')
+    if v not in title_line:
+        problems.append(f'README 标题行没有当前版本号：{title_line[:50]}')
     head = "\n".join(readme.splitlines()[:40])
     if v not in head:
         problems.append(f'README 前 40 行里没有当前版本号 {v}')

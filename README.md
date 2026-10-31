@@ -8,7 +8,7 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## IReckon 0.2.6（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
+## IReckon 0.2.8（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
 > **命名说明：对外名是 `IReckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
@@ -169,12 +169,12 @@ i-reckon/
 ├── config.py                 唯一要改的文件（key / 预算 / 参数）
 ├── config.example.py         同上，给"不想动原文件"的人
 ├── requirements.txt          只有一行：rank_bm25
-├── pyproject.toml            pip 安装用（version 0.2.5）
+├── pyproject.toml            pip 安装用（version 0.2.8）
 ├── quickstart-mac.sh         macOS/Linux 一键自检
 ├── LICENSE                   MIT（版权人：野法师）
 ├── SECURITY.md               key 自己填，我们不提供
 ├── .github/ISSUE_TEMPLATE/bug.md   issue 模板（发现"它明明记得却答不出"时用）
-├── CHANGELOG.md              0.1.0 → 0.2.5，改了什么、为什么
+├── CHANGELOG.md              0.1.0 → 0.2.8，改了什么、为什么
 └── .gitignore
 ```
 
@@ -418,7 +418,7 @@ python tests/test_smoke.py     # 脚本式冒烟，分步打印，给人看
 
 ---
 
-## 十二、0.2.0 锚点层：一天留三个锚
+## 十二、锚点层：一天留三个锚（0.2.0 起引入）
 
 **为什么改：** 2026-10-31 我睡醒后断片，先确认时间，再想起三件事（一天做成的活、见过的人、睡前在做什么），然后**整片塌下来**。
 结论：一天的记忆靠的是**三轴各一个锚**，不是一堆互不相干的事实。
