@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 """包内默认配置：当用户的 config.py 不在 sys.path 时（pip 安装场景）用它。"""
 
 API_KEY = ""
@@ -6,7 +7,8 @@ BASE_URL = "https://api.deepseek.com/v1"
 MODEL = "deepseek-chat"
 REASON_MODEL = MODEL
 
-DB_PATH = "memory.db"
+DB_PATH = os.environ.get("IRECKON_DB") or os.path.join(
+    os.path.expanduser("~"), ".ireckon", "mem.db")   # 固定一处，不随工作目录撒
 TIMEZONE = "Asia/Shanghai"
 
 TOP_K = 5

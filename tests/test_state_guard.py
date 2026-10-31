@@ -203,3 +203,68 @@ def test_upgrade_old_db_with_duplicate_anchors(tmp_path):
         "select id, rarity from anchors where status='active'")}
     assert before == after, '迁移后的 rarity 与重建结果不一致' 
     m.close()
+
+
+# ---- 0.2.8：库位置与版本审计 ----
+
+def test_default_db_is_fixed_not_cwd(monkeypatch, tmp_path):
+    """默认库必须在用户目录，不随工作目录变（否则换个目录跑就像失忆）。"""
+    import importlib
+    from ireckon import config_defaults as cd
+    monkeypatch.delenv('IRECKON_DB', raising=False)
+    importlib.reload(cd)
+    assert '.ireckon' in cd.DB_PATH, cd.DB_PATH
+    assert not cd.DB_PATH.endswith('memory.db') or '.ireckon' in cd.DB_PATH
+    # 换到别的目录也不该改
+    old = os.getcwd()
+    try:
+        os.chdir(str(tmp_path))
+        importlib.reload(cd)
+        assert '.ireckon' in cd.DB_PATH
+    finally:
+        os.chdir(old)
+        monkeypatch.undo()
+        importlib.reload(cd)
+
+
+def test_env_overrides_db_path(monkeypatch, tmp_path):
+    import importlib
+    from ireckon import config_defaults as cd
+    target = str(tmp_path / 'mine.db')
+    monkeypatch.setenv('IRECKON_DB', target)
+    importlib.reload(cd)
+    assert cd.DB_PATH == target
+    monkeypatch.delenv('IRECKON_DB')
+    importlib.reload(cd)
+
+
+def test_legacy_db_is_not_moved(tmp_path, monkeypatch, capsys):
+    """当前目录有旧 memory.db 且默认库为空 → 只提示，不动数据。"""
+    import importlib
+    from ireckon import config_defaults as cd
+    workdir = tmp_path / 'work'
+    workdir.mkdir()
+    legacy = workdir / 'memory.db'
+    legacy.write_bytes(b'')
+    monkeypatch.chdir(workdir)
+    monkeypatch.setenv('IRECKON_DB', str(tmp_path / 'new.db'))
+    importlib.reload(cd)
+    m = Memory(db_path=str(tmp_path / 'new.db'))
+    out = capsys.readouterr().out
+    assert '旧库' in out or 'memory.db' in out, out
+    assert legacy.exists(), '旧库不许被自动搬走'
+    assert m.con.execute('select count(*) c from turns').fetchone()['c'] == 0
+    m.close()
+    monkeypatch.delenv('IRECKON_DB')
+    importlib.reload(cd)
+
+
+def test_version_audit_passes():
+    """版本/包名审计：任何一处退回旧号，这条会红。"""
+    import importlib.util
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        'tools', 'version_audit.py')
+    spec = importlib.util.spec_from_file_location('version_audit', path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.audit(strict=True) == 0

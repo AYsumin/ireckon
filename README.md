@@ -12,7 +12,7 @@
 
 
 > **命名说明：对外名是 `IReckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
-> **版本号 `0.2.7` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
+> **版本号 `0.2.8` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
 > `0.58e` 是内部代号（"断崖系数 0.58 的实验分支"），说实验分支，不说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
@@ -30,7 +30,7 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `IReckon-0.2.7.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | `IReckon-0.2.8.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
 > | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
@@ -90,6 +90,17 @@ Cognee（图与向量混合），以及各框架自带的 memory 模块。都读
 - **锚的罕见度 = 当前库内的稀有程度**，不是"这件事客观上重要"。
 - **召回不到就返回空**：没有向量时它只认字面，换个说法会漏。
 - **它不生成人格、不决定该记什么、不做加密与权限**（归属标记只为防冒充，不为防偷看）。
+
+
+### 库放哪儿（多实例怎么分）
+
+```
+默认     ~/.ireckon/mem.db          —— 不论从哪个目录启动，都是同一个库（不会到处撒）
+改位置   IRECKON_DB=/path/to/x.db   —— 环境变量优先
+多实例   每个实例给它自己的 IRECKON_DB，或在自己的 config.py 里写死 DB_PATH
+旧版本   老版本把库放在启动目录的 ./memory.db；升级后若发现它、而默认库为空，会打印一句提示，
+         但**不会自动搬**（记忆搬家由人决定）
+```
 
 ## 一、为什么是 BM25，不是向量（以及这个选择的代价）
 
@@ -534,7 +545,7 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `IReckon-0.2.7.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| `IReckon-0.2.8.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
 | 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
@@ -578,7 +589,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip IReckon-0.2.7.zip
+unzip IReckon-0.2.8.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 

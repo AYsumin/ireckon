@@ -7,6 +7,7 @@
     reply = await m.reply("u1", "昨天管子的事怎么样了")
 """
 import asyncio
+import os
 import time
 from datetime import date, datetime, timedelta
 from typing import List, Optional
@@ -74,6 +75,25 @@ class Memory:
         except Exception as _e:                     # 任何异常都不该挡住建库
             self.vector_note = f"向量未启用：{str(_e)[:80]}"
         self._sched_task = None
+        self._legacy_db_notice()
+
+    def _legacy_db_notice(self) -> None:
+        """老版本把库放在启动目录（./memory.db）。升级后发现旧库就提示一句，不自动搬。
+
+        为什么不自动搬：库是使用者的记忆，搬家该由人决定（跟"改要留痕"同一条）。
+        """
+        try:
+            legacy = os.path.join(os.getcwd(), 'memory.db')
+            if not os.path.exists(legacy):
+                return
+            if os.path.abspath(legacy) == os.path.abspath(self.db_path):
+                return
+            mine = self.con.execute("select count(*) c from turns").fetchone()["c"]
+            if mine == 0:
+                print(f"[ireckon] 当前目录发现旧库 {legacy}，但默认库 {self.db_path} 还是空的。"
+                      f"如果要接着用旧的，设 IRECKON_DB={legacy} 或把它复制过去。")
+        except Exception:
+            pass
 
     # ---------- 写入 ----------
     def add_turn(self, session_id: str, role: str, content: str, ts: Optional[float] = None) -> int:
