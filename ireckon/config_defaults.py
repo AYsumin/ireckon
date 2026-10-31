@@ -35,5 +35,5 @@ VECTOR_MIN_COS = 0.35                   # 余弦低于此视为没对上（向�
 # ---- 0.2.0 锚点层 ----
 ANCHOR_RARITY_WEIGHT = 0.5      # 罕见度在锚检索里的加成权重（0 = 只用 BM25）
 ANCHOR_TOPK = 4                 # 一次带几条锚进上下文
-ANCHOR_VERIFY_MIN_RATIO = 0.5   # 外部回应要覆盖锚的字组多少才判"对得上"
+ANCHOR_VERIFY_MIN_RATIO = 0.4   # 外部回应要覆盖锚的字组多少才判"对得上"
 ANCHOR_BUDGET_SHARE = 0.34      # 记忆预算里给锚点留的比例（剩下给事实）

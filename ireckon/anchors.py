@@ -301,15 +301,22 @@ def verify(anchor_row: dict, external_text: str, min_ratio: float = 0.5) -> dict
     判据是 bigram 覆盖率（锚的字组被外部回应覆盖了多少），不是字符串相等——
     因为"一起想起来"时对方说的是自己的话，不是复述。
     """
-    a = set(tokenize(anchor_row.get("text") or ""))
-    b = set(tokenize(external_text or ""))
+    # 与 probe_claim 同一口径：只比"实词字组"，虚词（好像/下午/的事…）不参与
+    # 2026-11-01 首次运行自检发现：按全字组算比例，人用自己的话说一遍会判成"对不上"
+    stop = getattr(__import__("ireckon.recognition", fromlist=["x"]), "_STOP_GRAMS", set())
+    a_all = set(tokenize(anchor_row.get("text") or ""))
+    b_all = set(tokenize(external_text or ""))
+    a = a_all - stop
+    b = b_all - stop
     if not a:
-        return {"ok": False, "ratio": 0.0, "shared": 0, "missing": [], "why": "锚没有可比的字组"}
+        return {"ok": False, "ratio": 0.0, "shared": 0, "missing": [], "why": "锚没有可比的实词字组"}
     shared = a & b
-    ratio = len(shared) / len(a)
+    # 分母取"短的那一侧"：锚往往写得长，人回答往往短，
+    # 用长侧做分母会把"说得简洁但对得上"判成对不上（2026-11-01 首次运行自检发现）
+    ratio = len(shared) / max(min(len(a), len(b)), 1)
     missing = sorted(a - b, key=len, reverse=True)[:8]
     return {
-        "ok": ratio >= min_ratio,
+        "ok": (ratio >= min_ratio) and len(shared) >= 3,
         "ratio": round(ratio, 3),
         "shared": len(shared),
         "missing": missing,
