@@ -49,7 +49,8 @@ def _version() -> str:
 OUT = os.path.join(os.path.dirname(ROOT), f"IReckon-{_version()}.zip")
 BLOCKLIST = os.path.join(ROOT, "tools", "blocklist.local")
 
-SKIP_DIRS = {"__pycache__", ".pytest_cache", ".git", ".idea", ".vscode", "node_modules", "backups", "snapshots"}
+SKIP_DIRS = {"__pycache__", ".pytest_cache", ".git", ".idea", ".vscode", "node_modules",
+             "backups", "snapshots", "logs"}
 SKIP_EXT = {".pyc", ".pyo", ".log", ".db", ".db-wal", ".db-shm", ".local"}
 SKIP_NAMES = {".env", ".DS_Store"}
 
@@ -62,7 +63,7 @@ PATTERNS = [
 FORBIDDEN_EXT = {".db", ".db-wal", ".db-shm", ".log", ".local", ".pyc", ".pyo"}
 FORBIDDEN_NAMES = {"blocklist.local", ".env"}
 # 目录级的硬闸门：编译缓存与测试缓存会带本机绝对路径，绝不许进包
-FORBIDDEN_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+FORBIDDEN_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "logs"}
 
 
 def load_blocklist():

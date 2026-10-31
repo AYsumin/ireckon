@@ -8,11 +8,11 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## IReckon 0.2.10（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
+## IReckon 0.2.11（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
 > **命名说明：对外名是 `IReckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
-> **版本号 `0.2.10` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
+> **版本号 `0.2.11` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
 > `0.58e` 是内部代号（"断崖系数 0.58 的实验分支"），说实验分支，不说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
@@ -30,7 +30,7 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `IReckon-0.2.10.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | `IReckon-0.2.11.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
 > | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
@@ -108,7 +108,7 @@ Cognee（图与向量混合），以及各框架自带的 memory 模块。都读
 **先说清楚哪些是实测、哪些是估算：**
 
 ```
-实测    同一天（2026-10-30，354 条消息 ≈ 177 轮）她在 livingmemory 上的账单：321 次调用、¥12.27
+实测    同一天（2026-10-30，354 条消息 ≈ 177 轮）她在原来那套记忆插件上的账单：321 次调用、¥12.27
         —— 其中绝大多数是"记忆整理"，不是回话（聊天 <¥3，整理 ≈¥10）
 
 估算    本表的单价（输入 ¥1.41/M、输出 ¥5.63/M）是用上面那张账单反推的
@@ -122,7 +122,7 @@ Cognee（图与向量混合），以及各框架自带的 memory 模块。都读
 | 每 50 轮 | 3 | 30k | 6k | ¥0.076 | ¥2.3 |
 | 每 20 轮 | 8 | 80k | 16k | ¥0.203 | ¥6.1 |
 | 每 10 轮 | 17 | 170k | 34k | ¥0.430 | ¥12.9 |
-| 对照：livingmemory 实测 | 321 | 8.05M | 167k | **¥12.27** | ≈¥368 |
+| 对照：原来那套记忆插件（实测）| 321 | 8.05M | 167k | **¥12.27** | ≈¥368 |
 
 **读这张表要知道的三件事：**
 
@@ -450,7 +450,7 @@ asyncio.create_task(m.run_scheduler(stop))   # 每天 config.DISTILL_HOUR 蒸馏
 ## 九、测试
 
 ```bash
-pytest -q                      # 75 项测试（纯断言，CI 可收集）
+pytest -q                      # 77 项测试（纯断言，CI 可收集）
 python tests/test_pytest.py    # 同上，没装 pytest 也能跑
 python tests/test_smoke.py     # 脚本式冒烟，分步打印，给人看
 ```
@@ -586,7 +586,7 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `IReckon-0.2.10.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| `IReckon-0.2.11.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
 | 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
@@ -630,7 +630,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip IReckon-0.2.10.zip
+unzip IReckon-0.2.11.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 
@@ -638,7 +638,7 @@ bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量�
 
 ```bash
 python3 -m pip install "rank_bm25==0.2.2"
-python3 -m pytest tests -q        # 75 项测试（没有 pytest 时跑 tests/test_pytest.py 也能看基础项）
+python3 -m pytest tests -q        # 77 项测试（没有 pytest 时跑 tests/test_pytest.py 也能看基础项）
 python3 demo/offline_demo.py      # 不需要 key
 python3 tools/verify_tokens.py    # 注入预算实测
 ```
@@ -678,7 +678,7 @@ python3 -c "import ireckon; m=ireckon.Memory(); print(m.vector_note)"
 ## 测试
 
 ```bash
-pytest -q                    # 标准套件（75 项测试，纯断言）
+pytest -q                    # 标准套件（77 项测试，纯断言）
 python tests/test_pytest.py  # 没装 pytest 也能跑，自己遍历用例
 python tests/test_smoke.py   # 脚本式冒烟（给人看的分步输出）
 python demo/offline_demo.py  # 离线结构验证（无 key、无网络）
