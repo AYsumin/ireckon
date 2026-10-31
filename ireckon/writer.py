@@ -298,8 +298,10 @@ class Distiller:
                 text = (f.get("text") or "").strip()
                 if not text:
                     continue
+                # 只挡"同一天里已经有一条 active 的同文本"；
+                # 若旧那条已被 superseded，允许重新写（改过又改回来是合法情形）
                 dup = self.con.execute(
-                    "select 1 from facts where day_id=? and content=? limit 1",
+                    "select 1 from facts where day_id=? and content=? and status='active' limit 1",
                     (day_id, text)).fetchone()
                 if dup:
                     continue

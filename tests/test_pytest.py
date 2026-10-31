@@ -267,3 +267,56 @@ if __name__ == '__main__':
             print(f'  FAIL {name}: {e}')
     print(f'\n{len(fns) - bad}/{len(fns)} 通过')
     sys.exit(1 if bad else 0)
+
+
+# ---- 2026-11-01：一天蒸多次（她要改成每 20 轮蒸一次）不能把事实写重 ----
+
+def test_distill_twice_no_fact_duplicates():
+    import ireckon.writer as w
+    m = _mk()
+    old = w.llm.chat_json
+    w.llm.chat_json = StubLLM.chat_json
+    try:
+        from datetime import datetime as _dt
+        ts = _dt(2026, 10, 28, 12, 0).timestamp()
+        m.add_turn('u1', 'user', '下水管漏了，赔了三千，师傅九点半来', ts=ts)
+
+        async def twice():
+            # 两次蒸馏必须在同一个事件循环里跑：队列绑在创建它的 loop 上
+            m.schedule_day('2026-10-28')
+            await m.drain()
+            n1 = m.con.execute("select count(*) c from facts where status='active'").fetchone()['c']
+            # 模拟"20 轮触发"：清掉当天的蒸馏记录后重蒸
+            m.con.execute("delete from distill_log where day='2026-10-28'")
+            m.con.commit()
+            m.schedule_day('2026-10-28')
+            await m.drain()
+            n2 = m.con.execute("select count(*) c from facts where status='active'").fetchone()['c']
+            return n1, n2
+
+        n1, n2 = asyncio.run(twice())
+    finally:
+        w.llm.chat_json = old
+    assert n1 >= 1, '第一次就该有事实'
+    assert n2 == n1, f'同一天重蒸后事实不该翻倍：{n1} → {n2}'
+    m.close()
+
+
+def test_superseded_fact_can_be_written_again():
+    """被取代的旧事实不该挡住同文本重新写入。"""
+    m = _mk()
+    ts = 1793000000.0
+    from ireckon import db as _db
+    day = '2026-10-28'
+    d = _db
+    y = d.upsert_year(m.con, '2026'); mo = d.upsert_month(m.con, '2026-10', y)
+    wk = d.upsert_week(m.con, '2026-W44', mo)
+    m.con.execute("insert into days(day,title,diary,year_id,month_id,week_id,created_at) values(?,?,?,?,?,?,?)",
+                  (day, 't', 'd', y, mo, wk, ts))
+    day_id = m.con.execute('select id from days where day=?', (day,)).fetchone()['id']
+    m.con.execute("insert into facts(day_id,content,status,created_at) values(?,?, 'superseded', ?)",
+                  (day_id, '同一句话', ts))
+    m.con.commit()
+    added = m.distiller._insert_facts(day, day_id, [{'text': '同一句话'}])
+    assert added == 1, '旧那条已被取代，同文本应当允许重新写入'
+    m.close()
