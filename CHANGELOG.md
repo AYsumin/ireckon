@@ -1,3 +1,116 @@
+## 0.2.4 — 写路径的状态契约（2026-10-31）
+
+**为什么加：** 外部验证在 0.2.3 上找到五个问题，它们不是五个疏忽，是同一个缺口：
+每个写函数各自判断状态，没有一层"什么状态允许什么操作"。这一版补的是那一层。
+
+### 新增
+- `ireckon/state_guard.py`：允许/拒绝矩阵 + 统一的 `InvariantError`
+  - `require_day`（格式 + 真实存在）· `require_active_anchor`（已取代不许再改）
+  - `require_anchor_day`（认定必须写在锚所属那天）· `require_evidence`（没出处不许改账）
+  - `require_claim` · `existing_active_anchor`（幂等）
+- 所有写路径（insert / correct / record / claim / resolve）统一走它
+- DB 层兜底：`uq_anchor_active` 部分唯一索引（同一天同轴同一文本只能一条 active）；
+  老库有重复时建不起来就把重复清单写进 `logs/anchor-dups.txt`，不静默
+- `tests/test_state_guard.py`：**转移矩阵测试**（7 组参数化 + 5 条写路径矩阵 + 半成品检查）
+
+### 修（对着外部验证的五条）
+1. 重复修正已取代的锚 → 拒绝，并指出当前生效的那条
+2. 同一主张重复 resolve → 幂等返回已有 anchor_id
+3. 认定日期与锚不符 → 拒绝，且一条认定都不写入
+4. `tools/reproduce.py` 补 `--evidence`（并修了参数解析：`--anchor` / `--verdict` 两种写法）
+5. 版本三处对齐（pyproject / `__init__` / CHANGELOG），两份 schema 更新到最终结构
+
+### 文档
+- README 首屏换成那句话：**记忆不仅需要被保存，还需要允许被质疑、核对和修正。**
+- 新增「它不保证什么」：evidence 只校验非空、probe 只做字面、互认率是操作统计、
+
+
+### 复验后的两个回归（同日修复）
+
+1. **同文本修正会让锚自我取代**：`insert_anchor` 幂等返回同一条 id，随后 `correct()` 又把它标成
+   `superseded_by=自己`，锚从当天消失。现在 `new_id == old_id` 直接回滚并当无操作返回。
+2. **含重复锚的老库升级直接崩**：唯一索引原先写在 `schema.sql` 里，`init_db` 阶段就执行，
+   老库一有重复就 `UNIQUE constraint failed`，迁移动都没跑。现在索引移出基础 schema，
+   由 `_ensure_unique_active()` 在迁移里建：先按 `(day,axis,text)` 保留最早一条 active、
+   其余标 superseded（**不删**），写 `logs/anchor-dups.txt`，再建索引。
+
+3. **迁移后 df 没跟着回收**：重复锚被标 superseded 后，`anchor_gram_df` 仍按重复前计数，
+   导致升级库的罕见度/排序被污染。现在去重后立刻 `rebuild_df()` + `recompute_rarity()`，
+   并在升级测试里断言"被取代的锚不再计入 df、rarity 与全量重建一致"。
+
+新增 3 条回归测试（同文本无操作、record 同文本路径、含重复老库升级），全量 71 条。
+
+## 0.2.3 — 昨日重现（认不认要留痕）（2026-10-31）
+
+**为什么加：** 记忆不是"存了就记得"，是"给得出锚、且人认"。
+他说：我重构的时候拿不准就去外部核对——查时间、翻原文。
+所以重现的每一条锚都必须带**时间 + 原文片段**，否则人没得核。
+
+**新增**
+- `recognition_log` 表：`day / anchor_id / verdict / corrected_text / note / at`，只追加不覆盖
+- `ireckon/recognition.py`：`reproduce()`（三轴 + 每条的时间与原文最像片段 + 已有认定）、
+  `record()`、`stats()`（每天几条、答了几条、几天没人核）、`render()`
+- 对外方法：`reproduce_day / record_verdict / recognition_stats`
+- `tools/reproduce.py`：命令行入口（`--yesterday --write` 可由定时任务跑；`--verdict` 记认定；`--stats` 看核账）
+
+**三条约定写进代码**
+- 没认定 = `unknown`，**不是** `confirmed`：沉默不算认可
+- 认不出（`disputed`）与记错了（`corrected`）分开记，前者保留等第二条证据
+- 认定只追加：同一条锚多次认定全部留痕，取最新一次为准
+
+**验证** 40 条测试通过（新增 7 条：原文片段必带、沉默=unknown、率随认定变化、
+改认定留痕取最新、没人核的天数要被数出来）。
+
+### （并入）不对称记忆：她得有自己的判断
+
+**为什么加：** 他问的是最难看的一处——她记得、他忘了；或者他记得、她没有记录。
+两种情况都不能让"谁说得更确定"决定哪版是真的。他的原话："要的就是她得有自己的判断。"
+
+**规则（写进代码，不是文档）**
+- 认定扩成五种：`confirmed / disputed / hedged / corrected / unknown`
+- **只有 `corrected` 且带 `evidence` 才允许改锚**；没证据 → 只记冲突，锚一个字不动
+- `hedged`（模糊）与 `unknown`（没答）都不算互认，也不降权
+- 他说有、她没有记录的事 → 进 `pending_claims` 挂起，**不直接变成她的锚**；
+  拿到出处后才能 `resolve_claim` 落成锚，来源标 `verified_claim`
+- 改锚成功后，新锚也补一条认定，否则当天的"✎"会随旧锚一起消失
+
+**新增**
+- `pending_claims` 表（day / text / claim_by / evidence / status / anchor_id）
+- `ireckon/recognition.py`：`claim() / claims_of() / resolve_claim()`；`record()` 加 `claim`、`evidence`
+- 对外方法：`claim_memory / pending_claims / resolve_claim`
+- 重现里待证主张单独一行：「（他说的，我没有记录）」
+
+**迁移**
+- `recognition_log` 的 CHECK 约束改成五种（SQLite 不能 ALTER CHECK，走重建表 + 搬数据，一条不丢）
+
+**验证** 46 条测试（新增 6 条：没证据不许改锚、有证据才改、模糊不算确认、主张不进记忆、
+resolve 必须给证据、resolve 后来源标 verified_claim）。
+
+
+
+**为什么加：** 他问的是最难看的一处——她记得、他忘了；或者他记得、她没有记录。
+两种情况都不能让"谁说得更确定"决定哪版是真的。他的原话："要的就是她得有自己的判断。"
+
+**规则（写进代码，不是文档）**
+- 认定扩成五种：`confirmed / disputed / hedged / corrected / unknown`
+- **只有 `corrected` 且带 `evidence` 才允许改锚**；没证据 → 只记冲突，锚一个字不动
+- `hedged`（模糊）与 `unknown`（没答）都不算互认，也不降权
+- 他说有、她没有记录的事 → 进 `pending_claims` 挂起，**不直接变成她的锚**；
+  拿到出处后才能 `resolve_claim` 落成锚，来源标 `verified_claim`
+- 改锚成功后，新锚也补一条认定，否则当天的"✎"会随旧锚一起消失
+
+**新增**
+- `pending_claims` 表（day / text / claim_by / evidence / status / anchor_id）
+- `ireckon/recognition.py`：`claim() / claims_of() / resolve_claim()`；`record()` 加 `claim`、`evidence`
+- 对外方法：`claim_memory / pending_claims / resolve_claim`
+- 重现里待证主张单独一行：「（他说的，我没有记录）」
+
+**迁移**
+- `recognition_log` 的 CHECK 约束改成五种（SQLite 不能 ALTER CHECK，走重建表 + 搬数据，一条不丢）
+
+**验证** 46 条测试（新增 6 条：没证据不许改锚、有证据才改、模糊不算确认、主张不进记忆、
+resolve 必须给证据、resolve 后来源标 verified_claim）。
+
 ## 0.2.2 — 发布后评审修一轮（Kimi，2026-10-31）
 
 0.1.7 修过的一批问题在 0.2.x 开发中回潮了（新功能分支没带过去），本轮全部补回：

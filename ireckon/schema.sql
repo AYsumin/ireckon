@@ -111,3 +111,39 @@ CREATE TABLE IF NOT EXISTS subject_aliases (
     canonical TEXT NOT NULL,
     created_at REAL
 );
+
+-- ============ 0.2.3 新增：昨日重现的核账 ============
+-- 记忆不是"存了就记得"，是"给得出锚、且人认"。这张表记的就是"认不认"。
+CREATE TABLE IF NOT EXISTS recognition_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    day            TEXT NOT NULL,
+    anchor_id      INTEGER NOT NULL,
+    verdict        TEXT NOT NULL CHECK (verdict IN ('confirmed','disputed','hedged','corrected','unknown')),
+    corrected_text TEXT,
+    note           TEXT,
+    claim          TEXT,
+    evidence       TEXT,
+    at             REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_recog_day ON recognition_log(day, anchor_id);
+
+-- ============ 0.2.4：不对称记忆 ============
+-- 他说有、她没有记录的事，挂在这里等证据；不算她的记忆，也不删。
+CREATE TABLE IF NOT EXISTS pending_claims (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    day        TEXT NOT NULL,
+    text       TEXT NOT NULL,              -- 他主张的事
+    claim_by   TEXT DEFAULT 'him',         -- 谁说的
+    confidence TEXT DEFAULT 'clear',        -- clear / vague（他答得模糊就是线索，不是证据）
+    evidence   TEXT,                       -- 后来的出处（原文/第三方）
+    status     TEXT DEFAULT 'pending',     -- pending / verified / dropped
+    anchor_id  INTEGER,                    -- verified 之后落到哪条锚
+    note       TEXT,
+    created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_claims_day ON pending_claims(day, status);
+
+-- 注意：唯一索引 uq_anchor_active 不写在这里。
+-- 原因（2026-10-31 外部验证）：schema 执行阶段建索引，老库一旦有重复数据，
+-- init_db 会直接崩在 UNIQUE constraint 上，迁移动都没跑。
+-- 它现在由 db._ensure_unique_active() 在迁移里建，先收拾重复、再建索引。

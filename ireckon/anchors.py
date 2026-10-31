@@ -20,6 +20,7 @@ import time
 from collections import Counter
 from typing import Dict, List, Optional
 
+from . import state_guard as G
 from .bm25 import BM25Index, tokenize
 
 AXES = ("event", "person", "time")
@@ -132,10 +133,7 @@ def correct(con, old_id: int, text: str, subjects: Optional[List[str]] = None,
     为什么不是原地改：锚是用来"验"的，改过的锚必须留下"改前是什么"，
     否则下次争论"当初记的是哪条"就没有对证了（跟她那条"改要留痕"一致）。
     """
-    row = con.execute("select day, axis, text, subjects, why from anchors where id=?",
-                      (old_id,)).fetchone()
-    if row is None:
-        raise ValueError(f"没有 id={old_id} 这条锚")
+    row = G.require_active_anchor(con, old_id)
     subs = subjects
     if subs is None:
         try:
@@ -147,6 +145,11 @@ def correct(con, old_id: int, text: str, subjects: Optional[List[str]] = None,
         new_id = insert_anchor(con, row["day"], row["axis"], text,
                                subjects=list(subs or []), source="manual",
                                why=why or (row["why"] or ""), commit=False)
+        if new_id == old_id:
+            # 同一天同轴同文本 → insert 幂等返回了同一条。
+            # 这时绝不能 supersede，否则锚会被自己取代、从当天消失（2026-10-31 外部验证发现）
+            con.rollback()
+            return old_id
         con.execute("update anchors set status='superseded', superseded_by=? where id=?",
                     (new_id, old_id))
         _df_delta(con, row["text"], -1)      # 旧的不再 active，df 要减回去
@@ -185,10 +188,14 @@ def insert_anchor(con, day: str, axis: str, text: str,
     """
     axis = (axis or "").strip().lower()
     if axis not in AXES:
-        raise ValueError(f'axis 只能是 {AXES}，收到 {axis!r}')
+        raise G.InvariantError(f'axis 只能是 {AXES}，收到 {axis!r}')
+    day = G.require_day(day)
     text = (text or "").strip()
     if not text:
-        raise ValueError("锚的正文不能为空")
+        raise G.InvariantError("锚的正文不能为空")
+    dup = G.existing_active_anchor(con, day, axis, text)
+    if dup:
+        return dup["id"]          # 幂等：同一天同轴同文本不重复落两条
     subs = [normalize_subject(con, str(x)) for x in (subjects or []) if str(x).strip()]
     idf = _gram_idf(con)
     rar = text_rarity(text, idf)

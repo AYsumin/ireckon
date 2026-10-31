@@ -17,6 +17,7 @@ except ImportError:        # pip 安装后没有 config.py，用包内默认值
     from . import config_defaults as C
 from . import db, llm, router
 from . import anchors as anchors_mod
+from . import recognition as recognition_mod
 from .recall import Retriever, render_block
 from .writer import Distiller, mark_superseded
 
@@ -239,6 +240,48 @@ class Memory:
             raise ValueError(f"没有 id={anchor_id} 这条锚")
         return anchors_mod.verify(dict(row), external_text,
                                   min_ratio=getattr(C, "ANCHOR_VERIFY_MIN_RATIO", 0.5))
+
+    # ---------- 昨日重现（0.2.3）----------
+    def reproduce_day(self, day: str) -> dict:
+        """某天的"昨日重现"：三轴锚 + 每条的时间与原文片段 + 已有认定。"""
+        return recognition_mod.reproduce(self.con, day)
+
+    def record_verdict(self, day: str, anchor_id: int, verdict: str,
+                       corrected_text: str = "", note: str = "",
+                       claim: str = "", evidence: str = "") -> dict:
+        """记一条认定：confirmed / disputed / hedged / corrected / unknown。
+
+        注意：只有 corrected **且带 evidence** 才会真的改锚；
+        没证据时只记冲突，锚不动（她的判断不被别人的断言覆盖）。
+        """
+        return recognition_mod.record(self.con, day, anchor_id, verdict,
+                                      corrected_text=corrected_text, note=note,
+                                      claim=claim, evidence=evidence)
+
+    def claim_memory(self, day: str, text: str, claim_by: str = "him", note: str = "",
+                     confidence: str = "clear") -> int:
+        """他说有、她没有记录的事 → 挂起待证，不直接进她的记忆。
+
+        confidence=vague：他答得模糊，只能当线索。
+        """
+        return recognition_mod.claim(self.con, day, text, claim_by=claim_by,
+                                     note=note, confidence=confidence)
+
+    def probe_claim(self, day: str, text: str) -> dict:
+        """把他一句（可能是模糊的）话拿去当天原文里核对：方向对不对、细节差在哪。"""
+        return recognition_mod.probe_claim(self.con, day, text)
+
+    def pending_claims(self, day: str = "", status: str = "pending") -> List[dict]:
+        """看有哪些待证主张。"""
+        return recognition_mod.claims_of(self.con, day, status=status)
+
+    def resolve_claim(self, claim_id: int, evidence: str) -> dict:
+        """拿到出处后落成一条锚（来源标 verified_claim）。"""
+        return recognition_mod.resolve_claim(self.con, claim_id, evidence)
+
+    def recognition_stats(self, days: int = 7, end_day: Optional[str] = None) -> dict:
+        """最近 N 天核了几条、几天没人核、互认率多少。"""
+        return recognition_mod.stats(self.con, days=days, end_day=end_day)
 
     # ---------- 维护 ----------
     def supersede(self, new_fact_id: int, new_text: str, keywords: List[str]) -> List[int]:

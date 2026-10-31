@@ -41,6 +41,8 @@ def _migrate(con) -> None:
     """
     needed = {
         "anchors": [("superseded_by", "INTEGER")],
+        "recognition_log": [("claim", "TEXT"), ("evidence", "TEXT")],
+        "pending_claims": [("confidence", "TEXT")],
     }
     for table, cols in needed.items():
         have = {r[1] for r in con.execute(f"pragma table_info({table})")}
@@ -50,6 +52,39 @@ def _migrate(con) -> None:
                     con.execute(f"alter table {table} add column {name} {decl}")
                 except sqlite3.OperationalError:
                     pass
+    _fix_recognition_check(con)
+    _ensure_unique_active(con)
+
+
+def _fix_recognition_check(con) -> None:
+    """0.2.4：verdict 多了 hedged，但 CHECK 约束没法 ALTER —— 只能重建表。
+
+    做法：改名 → 建新表 → 搬数据 → 删旧表。数据一条不丢（含 claim/evidence）。
+    """
+    row = con.execute(
+        "select sql from sqlite_master where type='table' and name='recognition_log'").fetchone()
+    if not row or not row[0] or "'hedged'" in row[0]:
+        return
+    con.execute("alter table recognition_log rename to recognition_log_old")
+    con.executescript("""
+CREATE TABLE recognition_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    day            TEXT NOT NULL,
+    anchor_id      INTEGER NOT NULL,
+    verdict        TEXT NOT NULL CHECK (verdict IN ('confirmed','disputed','hedged','corrected','unknown')),
+    corrected_text TEXT,
+    note           TEXT,
+    claim          TEXT,
+    evidence       TEXT,
+    at             REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_recog_day ON recognition_log(day, anchor_id);
+""")
+    con.execute("""insert into recognition_log(id, day, anchor_id, verdict, corrected_text, note, claim, evidence, at)
+                   select id, day, anchor_id, verdict, corrected_text, note, claim, evidence, at
+                   from recognition_log_old""")
+    con.execute("drop table recognition_log_old")
+    con.commit()
 
 
 def quick_check(db_path: str) -> str:
@@ -79,3 +114,63 @@ def upsert_week(con, week: str, month_id: int) -> int:
     con.execute("insert or ignore into weeks(week, month_id, created_at) values(?,?,?)",
                 (week, month_id, now()))
     return con.execute("select id from weeks where week=?", (week,)).fetchone()["id"]
+
+
+def _ensure_unique_active(con) -> None:
+    """建"同一天同轴同文本只能一条 active"的唯一索引。
+
+    老库可能已经有重复（0.2.3 不拦这个）。处理顺序：
+      1. 先试着建索引
+      2. 建不起来 → 每组重复里保留 id 最小的那条 active，其余标 superseded（**不删**）
+      3. 把处理清单写进 logs/anchor-dups.txt，再建一次索引
+    这样老库能起来，也不丢任何一条记录。
+    """
+    ddl = ("create unique index if not exists uq_anchor_active "
+           "on anchors(day, axis, text) where status='active'")
+    try:
+        con.execute(ddl)
+        return
+    except sqlite3.IntegrityError:
+        pass
+
+    dups = con.execute(
+        "select day, axis, text, min(id) as keep_id, count(*) c from anchors "
+        "where status='active' group by day, axis, text having c > 1").fetchall()
+    notes = ["发现重复 active 锚，已保留最早一条、其余标 superseded（未删除）："]
+    all_keep = con.execute(
+        "select id from anchors where status='active'").fetchall()
+    try:
+        con.execute("begin immediate")
+        for r in dups:
+            con.execute(
+                "update anchors set status='superseded', superseded_by=? "
+                "where day=? and axis=? and text=? and status='active' and id<>?",
+                (r["keep_id"], r["day"], r["axis"], r["text"], r["keep_id"]))
+            notes.append(f"  {r['day']} / {r['axis']} / {r['text'][:30]} × {r['c']}"
+                         f" → 保留 id={r['keep_id']}")
+        con.execute("commit")
+    except Exception:
+        con.execute("rollback")
+        return
+    # 派生数据必须跟着状态走：锚被取代后，它的字组不能再算进 df，否则罕见度/排序被污染
+    # （2026-10-31 外部复验发现：状态去重了，df 还按重复前计数）
+    try:
+        from . import anchors as _A
+        _A.rebuild_df(con)
+        _A.recompute_rarity(con)
+        notes.append("已按 active 锚重建 df 与罕见度。")
+    except Exception as e:
+        notes.append(f"重建 df 失败：{type(e).__name__}: {e}")
+
+    try:
+        con.execute(ddl)
+    except sqlite3.IntegrityError:
+        notes.append("收拾之后仍建不起索引，请手工检查。")
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logs = os.path.join(root, 'logs')
+        os.makedirs(logs, exist_ok=True)
+        with open(os.path.join(logs, 'anchor-dups.txt'), 'w', encoding='utf-8') as f:
+            f.write("\n".join(notes) + "\n")
+    except Exception:
+        pass

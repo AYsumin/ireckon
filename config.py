@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 """唯一需要改的文件。"""
 
 # ---- 必填 ----
@@ -8,7 +9,7 @@ MODEL = "deepseek-chat"          # 便宜、够用；要文采再换
 REASON_MODEL = MODEL             # 日记/抽取也可以指定更贵的模型
 
 # ---- 数据 ----
-DB_PATH = "memory.db"            # SQLite 文件；放哪都行
+DB_PATH = os.environ.get("IRECKON_DB") or os.path.join(os.path.expanduser("~"), ".ireckon", "mem.db")            # SQLite 文件；放哪都行
 TIMEZONE = "Asia/Shanghai"
 
 # ---- 检索（默认锁死为实测最优，别乱调）----
