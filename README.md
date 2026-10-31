@@ -8,11 +8,11 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## IReckon 0.2.8（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
+## IReckon 0.2.9（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
 > **命名说明：对外名是 `IReckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
-> **版本号 `0.2.8` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
+> **版本号 `0.2.9` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
 > `0.58e` 是内部代号（"断崖系数 0.58 的实验分支"），说实验分支，不说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
@@ -30,7 +30,7 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `IReckon-0.2.8.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | `IReckon-0.2.9.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
 > | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
@@ -169,32 +169,40 @@ BM25 切出的 `我养/养的/的猫` 与记忆里的 `养了/一只/只叫` 几
 ## 二、目录结构
 
 ```
-i-reckon/
-├── ireckon/                  核心包（10 个文件，含 __init__.py）
+IReckon/
+├── ireckon/                  核心包（13 个文件，含 __init__.py 与 schema.sql）
 │   ├── __init__.py           包入口（导出 Memory）
 │   ├── llm.py                最小 OpenAI 兼容客户端（chat / chat_json）
 │   ├── api.py                对外主类 Memory：add_turn / reply / build_context / correct
-│   ├── db.py                 建表 + WAL + 五层指针
+│   ├── db.py                 建表 + WAL + 五层指针 + 迁移
 │   ├── bm25.py               中文 bigram 切词 + rank_bm25（装不上就用内置兜底）
 │   ├── recall.py             分层检索 + 断崖截断 + token 预算
 │   ├── router.py             时间词路由（确定性规则，不用模型）
-│   ├── writer.py             异步蒸馏（日记 + 事实抽取 + 保守取代）
+│   ├── writer.py             异步蒸馏（日记 + 事实 + 三轴锚，一次调用产齐）
+│   ├── anchors.py            锚点层：三轴 / 罕见度 / 抛锚 / 外部验证 / 按天重构
+│   ├── recognition.py        昨日重现：五种认定 / 待证主张 / 模糊回答核对
+│   ├── state_guard.py        写路径的状态契约（允许/拒绝矩阵）
 │   ├── vector_backend.py     可选：向量 + RRF 融合（默认关）
-│   └── config_defaults.py    pip 安装时的兜底配置
-├── sql/schema.sql            五层表 + 指针外键
+│   └── schema.sql            pip 安装时用的建表脚本（与 sql/schema.sql 同源）
+├── sql/schema.sql            五层表 + 锚点 + 认定 + 待证主张
 ├── demo/
 │   ├── offline_demo.py       离线结构验证（无 key、无网络）
 │   └── README.md             它验什么、不验什么
 ├── tests/
-│   ├── test_pytest.py        14 项测试（pytest 可收集）
+│   ├── test_pytest.py        基础用例（pytest 可收集）
+│   ├── test_anchors.py       锚点层用例
+│   ├── test_recognition.py   昨日重现 / 不对称记忆用例
+│   ├── test_state_guard.py   状态契约的转移矩阵用例
 │   └── test_smoke.py         脚本式冒烟（分步打印，给人看）
 ├── tools/
 │   ├── verify_tokens.py      实测注入 token（别再拿估算当结论）
 │   ├── snapshot.py           库快照
 │   ├── backup.py             每日备份
 │   ├── check_env.py          环境自检
-│   ├── package.py            打包 + 敏感串扫描
-│   └── blocklist.local       打包扫描用的本地词表（19 个词，不含人名/模型名）
+│   ├── package.py            打包 + 敏感串扫描 + --check 只读预检
+│   ├── first_run.py          陌生人第一次用：六步走通，不给假绿
+│   ├── version_audit.py      版本/包名一致性审计（不一致就失败）
+│   └── blocklist.local       打包扫描用的本地词表（**不随包发布**）
 ├── examples/
 │   ├── demo_chat.py          接云端模型
 │   ├── demo_daily.py         接云端模型跑"一天的蒸馏"
@@ -442,7 +450,7 @@ asyncio.create_task(m.run_scheduler(stop))   # 每天 config.DISTILL_HOUR 蒸馏
 ## 九、测试
 
 ```bash
-pytest -q                      # 14 项测试（纯断言，CI 可收集）
+pytest -q                      # 75 项测试（纯断言，CI 可收集）
 python tests/test_pytest.py    # 同上，没装 pytest 也能跑
 python tests/test_smoke.py     # 脚本式冒烟，分步打印，给人看
 ```
@@ -578,7 +586,7 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `IReckon-0.2.8.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| `IReckon-0.2.9.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
 | 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
@@ -622,7 +630,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip IReckon-0.2.8.zip
+unzip IReckon-0.2.9.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 
@@ -630,7 +638,7 @@ bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量�
 
 ```bash
 python3 -m pip install "rank_bm25==0.2.2"
-python3 tests/test_pytest.py      # 14 项测试（不需要 pytest 也能跑）
+python3 -m pytest tests -q        # 75 项测试（没有 pytest 时跑 tests/test_pytest.py 也能看基础项）
 python3 demo/offline_demo.py      # 不需要 key
 python3 tools/verify_tokens.py    # 注入预算实测
 ```
@@ -670,7 +678,7 @@ python3 -c "import ireckon; m=ireckon.Memory(); print(m.vector_note)"
 ## 测试
 
 ```bash
-pytest -q                    # 标准套件（14 项测试，纯断言）
+pytest -q                    # 标准套件（75 项测试，纯断言）
 python tests/test_pytest.py  # 没装 pytest 也能跑，自己遍历用例
 python tests/test_smoke.py   # 脚本式冒烟（给人看的分步输出）
 python demo/offline_demo.py  # 离线结构验证（无 key、无网络）

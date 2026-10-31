@@ -286,12 +286,22 @@ class Distiller:
         return r["id"]
 
     def _insert_facts(self, day: str, day_id: int, facts: list) -> int:
+        """写事实。同一天里内容重复的直接跳过——这样"一天内多次重蒸"不会翻倍。
+
+        2026-11-01 加：她要改成"每 20 轮蒸一次"，一天会蒸好几遍，
+        旧实现每次都 insert，同一件事会重复落好几条。
+        """
         added = 0
         self.con.execute("begin immediate")
         try:
             for f in facts:
                 text = (f.get("text") or "").strip()
                 if not text:
+                    continue
+                dup = self.con.execute(
+                    "select 1 from facts where day_id=? and content=? limit 1",
+                    (day_id, text)).fetchone()
+                if dup:
                     continue
                 kws = f.get("keywords") or []
                 imp = float(f.get("importance", 0.8) or 0.8)

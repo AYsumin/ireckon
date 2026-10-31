@@ -1,3 +1,18 @@
+## 0.2.9 — 文档对齐（2026-11-01，无行为变化）
+
+**为什么：** 外部核对发现三处"说的和做的不一样"，都在文档里：
+1. Release 正文写着 `pip install irckon` / 包名 `irckon`，而 `pyproject.toml` 是 `ireckon`
+2. README 目录树还停在"核心包 10 个文件"，缺 anchors / recognition / state_guard / first_run / version_audit
+3. README 三处写着"14 项测试"，实际 75 项
+
+**改了什么**
+- 包名统一：`ireckon`（PyPI 名），对外的展示名 `IReckon`
+- 目录树补齐 13 个核心文件与新增工具；blocklist 明确标注"不随包发布"
+- 测试数统一为 75；补齐测试文件清单（anchors / recognition / state_guard）
+- 版本 → 0.2.9（0.2.8 已发布，内容冻结）
+
+**没有改的**：任何 `ireckon/` 下的逻辑。
+
 ## 0.2.8 — 库位置固定 + 版本审计（2026-10-31）
 
 **为什么：** 他说"安装这个包的人是用自己的库还是样例库"，顺带发现两个真问题：
