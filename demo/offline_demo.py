@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""俺寻思 0.58e · 离线结构验证 demo
+"""俺寻思 0.2.5（内部代号 0.58e）· 离线结构验证 demo
 
 不需要 API key、不联网、不装任何东西（rank_bm25 可选）。
 只验证结构：五层表、检索、断崖截断、token 预算。
@@ -108,7 +108,7 @@ def main():
     fails = []
 
     print('=' * 70)
-    print('俺寻思 0.58e · 离线结构验证　（无 key、无网络、无第三方依赖）')
+    print('俺寻思 0.2.5（内部代号 0.58e）· 离线结构验证　（无 key、无网络、无第三方依赖）')
     print('=' * 70)
 
     tabs = {r['name'] for r in con.execute(

@@ -8,10 +8,11 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## I reckon 0.58e: A 198-token minimal memory architecture.
+## I reckon 0.2.5（内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
-> **命名说明：`0.58e` 是内部代号（指"断崖系数 0.58 的实验分支"），对外的版本号是 `0.1.7`。**
+> **命名说明：`0.58e` 是内部代号（指"断崖系数 0.58 的实验分支"），**
+> **对外的版本号是 `0.2.4`（pyproject / `__init__` / CHANGELOG / 发布包名四处同号）。**
 > 两者不是同一套编号：代号说实验分支，版本号说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
@@ -29,8 +30,8 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `i-reckon-0.1.4.zip` | 纯 BM25 | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
-> | `i-reckon-vector-0.1.4.zip` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
+> | `俺寻思-0.2.5.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
 > 也就是说：没服务它不会坏，但也不会比纯 BM25 版更准。想真正吃到 85.5%，先起一个 bge / Ollama。
@@ -157,12 +158,12 @@ i-reckon/
 ├── config.py                 唯一要改的文件（key / 预算 / 参数）
 ├── config.example.py         同上，给"不想动原文件"的人
 ├── requirements.txt          只有一行：rank_bm25
-├── pyproject.toml            pip 安装用（version 0.1.7）
+├── pyproject.toml            pip 安装用（version 0.2.5）
 ├── quickstart-mac.sh         macOS/Linux 一键自检
 ├── LICENSE                   MIT（版权人：野法师）
 ├── SECURITY.md               key 自己填，我们不提供
 ├── .github/ISSUE_TEMPLATE/bug.md   issue 模板（发现"它明明记得却答不出"时用）
-├── CHANGELOG.md              0.1.0 → 0.1.7，改了什么、为什么
+├── CHANGELOG.md              0.1.0 → 0.2.5，改了什么、为什么
 └── .gitignore
 ```
 
@@ -533,8 +534,8 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `i-reckon-0.1.4.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
-| `i-reckon-vector-0.1.4.zip` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
+| `俺寻思-0.2.5.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
 比如 llama.cpp / Ollama / 自建 bge）。**连不上就自动退回纯 BM25，不报错。**
@@ -577,7 +578,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip i-reckon-0.1.4.zip && cd i-reckon
+unzip 俺寻思-0.2.5.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 

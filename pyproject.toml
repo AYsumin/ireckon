@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "i-reckon"
-version = "0.2.4"
-description = "五层时间记忆 + BM25 检索的极简记忆套件（俺寻思 0.58e）"
+version = "0.2.5"
+description = "五层时间记忆 + BM25 检索的极简记忆套件（俺寻思 0.2.5，内部代号 0.58e）"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

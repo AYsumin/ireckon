@@ -238,6 +238,12 @@ def test_version_consistent():
     v2 = re.search(r'__version__\s*=\s*"([^"]+)"', init).group(1)
     v3 = re.search(r'##\s*([\d.]+)', cl).group(1)
     assert v1 == v2 == v3, f'版本不一致：pyproject={v1} init={v2} changelog={v3}'
+    # 2026-10-31 他说"包号与版号不一致"：README/pyproject 描述里还挂着内部代号与旧号
+    readme = open(os.path.join(root, 'README.md'), encoding='utf-8').read()
+    desc = re.search(r'description\s*=\s*"([^"]+)"', pyproject).group(1)
+    assert f'0.2.4' in readme or v1 in readme, 'README 里没有当前版本号'
+    assert v1 in desc, f'pyproject description 里没有当前版本号：{desc[:40]}'
+    assert '对外的版本号是' in readme, 'README 缺"对外版本号"的说明' 
 
 
 def test_schema_has_final_recognition_table():
