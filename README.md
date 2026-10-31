@@ -1,4 +1,4 @@
-# I Reckon（俺寻思）· 五层时间记忆 + BM25
+# IRckon（俺寻思）· 五层时间记忆 + BM25
 
 > **记忆不仅需要被保存，还需要允许被质疑、核对和修正。**
 > *Memory must be not only stored, but also open to challenge, checking and correction.*
@@ -8,12 +8,12 @@
 它不追求"记得全"，追求"能被认出来"。
 
 
-## I reckon 0.2.5（内部代号 0.58e）: A 198-token minimal memory architecture.
+## IRckon 0.2.6（中文名 俺寻思，内部代号 0.58e）: A 198-token minimal memory architecture.
 
 
-> **命名说明：`0.58e` 是内部代号（指"断崖系数 0.58 的实验分支"），**
-> **对外的版本号是 `0.2.4`（pyproject / `__init__` / CHANGELOG / 发布包名四处同号）。**
-> 两者不是同一套编号：代号说实验分支，版本号说发布批次。
+> **命名说明：对外名是 `IRckon`（ASCII，避免中文包名在 GitHub/PyPI 被吞），`俺寻思` 只作中文别名；**
+> **版本号 `0.2.6` 在 pyproject / `__init__` / CHANGELOG / 包名四处同号。**
+> `0.58e` 是内部代号（"断崖系数 0.58 的实验分支"），说实验分支，不说发布批次。
 
 **· I reckon I can do it（俺寻思俺能行）**
 Zero heavy dependencies — no vector DB, no GPU, one Python package. Built from a human's first-principles hunch plus the model's own self-correction: *"this vector stack is too expensive, I reckon local BM25 can carry it."*
@@ -30,7 +30,7 @@ Built for edge boxes: the retrieval stack is plain SQLite + BM25 on CPU (runs on
 >
 > | 包 | 检索 | 需要额外什么 | 换说法 R@5 |
 > | --- | --- | --- | --- |
-> | `俺寻思-0.2.5.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
+> | `IRckon-0.2.6.zip` | 纯 BM25（默认） | 什么都不需要（唯一依赖 rank_bm25，不装也能跑兜底） | 67.5% |
 > | 同一个包 + 配置里开 `VECTOR_BACKEND` | BM25 + 向量 RRF | **一个 OpenAI 兼容的 `/v1/embeddings` 服务**（默认打本机 `127.0.0.1:8010`） | 85.5% |
 >
 > 向量版**没有 embedding 服务时会自动退回纯 BM25**，行为与本版纯 BM25 完全一致——
@@ -534,7 +534,7 @@ MIT。随便用，出问题自己担。
 
 | | 依赖 | 检索 | 换说法 R@5 |
 | --- | --- | --- | --- |
-| `俺寻思-0.2.5.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
+| `IRckon-0.2.6.zip` | 只要 rank_bm25 | 纯 BM25 | 67.5% |
 | 同包开 `VECTOR_BACKEND` | 同上 + 一个 embedding 服务 | BM25 + 向量 RRF | 85.5% |
 
 向量版默认打 `http://127.0.0.1:8010/v1`（任何 OpenAI 兼容的 `/v1/embeddings` 都行，
@@ -578,7 +578,7 @@ python examples/demo_local.py
 ## macOS / Linux 快速开始
 
 ```bash
-unzip 俺寻思-0.2.5.zip
+unzip IRckon-0.2.6.zip
 bash quickstart-mac.sh          # 装依赖 + 跑测试 + 跑离线 demo + 量注入预算
 ```
 

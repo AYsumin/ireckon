@@ -242,8 +242,16 @@ def test_version_consistent():
     readme = open(os.path.join(root, 'README.md'), encoding='utf-8').read()
     desc = re.search(r'description\s*=\s*"([^"]+)"', pyproject).group(1)
     assert f'0.2.4' in readme or v1 in readme, 'README 里没有当前版本号'
-    assert v1 in desc, f'pyproject description 里没有当前版本号：{desc[:40]}'
-    assert '对外的版本号是' in readme, 'README 缺"对外版本号"的说明' 
+    assert 'IRckon' in desc, f'pyproject description 里没有对外名 IRckon：{desc[:40]}'
+    # 描述里刻意不写版本号（否则每次升版都要改两处、还会过期）；版本只在 version 字段
+    assert '对外名是' in readme and 'IRckon' in readme, 'README 缺对外名（IRckon）的说明'
+    # 包名与产物名必须同源：pyproject name=irckon、package.py 产物前缀 IRckon
+    pkgname = re.search(r'name\s*=\s*"([^"]+)"', pyproject).group(1)
+    assert pkgname == 'irckon', f'包名应改成 irckon，实际 {pkgname}'
+    pkg = open(os.path.join(root, 'tools', 'package.py'), encoding='utf-8').read()
+    assert 'IRckon-{_version()}.zip' in pkg, '打包产物名应以 IRckon 开头'
+    initp = open(os.path.join(root, 'ireckon', '__init__.py'), encoding='utf-8').read()
+    assert '__name_ascii__ = "IRckon"' in initp, '__init__ 缺 __name_ascii__'  
 
 
 def test_schema_has_final_recognition_table():
