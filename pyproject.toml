@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "i-reckon"
+version = "0.2.2"
+description = "五层时间记忆 + BM25 检索的极简记忆套件（俺寻思 0.58e）"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["memory", "agent", "bm25", "sqlite", "chatbot", "long-term-memory"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["rank_bm25==0.2.2"]
+
+# 向量后端只用标准库 urllib + math，不需要额外依赖，故无 vector extra。
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["ireckon"]
+
+# schema.sql 必须随包发布：db.py 建表要读它。
+# 不打进去的话 pip 装完 Memory() 直接 FileNotFoundError。
+[tool.setuptools.package-data]
+ireckon = ["schema.sql"]

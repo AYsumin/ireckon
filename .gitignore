@@ -1,0 +1,23 @@
+# 数据库与运行时
+*.db
+*.db-wal
+*.db-shm
+
+# 缓存
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 密钥与本地名单（绝不进仓库）
+.env
+config.local.py
+tools/blocklist.local
+
+# 产物
+*.zip
+dist/
+build/
+*.egg-info/
+.DS_Store
