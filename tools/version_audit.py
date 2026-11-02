@@ -75,7 +75,8 @@ def audit(strict: bool = True) -> int:
 
     # 软性：其它地方出现的版本号
     cl_history = set(re.findall(r'##\s*([\d.]+)', cl))
-    pat = re.compile(r'\b0\.\d+\.\d+\b')
+    # 排除 IP（如 127.0.0.1）：前后紧邻数字或点的，不当版本号
+    pat = re.compile(r'(?<![\d.])0\.\d+\.\d+(?![\d.])')
     for path in _iter_files():
         rel = os.path.relpath(path, ROOT)
         if rel in ('pyproject.toml', 'CHANGELOG.md'):
